@@ -26,3 +26,19 @@ export const createTask = async (
   );
   return response.data;
 };
+
+export const deleteTask = async (taskId: number): Promise<void> => {
+  await axios.delete(`http://localhost:8000/api/tasks/${taskId}`);
+};
+
+export const updateTask = async (
+  taskId: number,
+  task: CreateTaskData
+): Promise<Task> => {
+  const response = await axios.put<Task>(
+    `http://localhost:8000/api/tasks/${taskId}`,
+    task
+  );
+
+  return response.data;
+};

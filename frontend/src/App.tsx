@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Project, Task } from "./types/project";
 import { getProjects } from "./api/projects";
-import { createTask, getTasks } from "./api/tasks";
+import { createTask, deleteTask, getTasks, updateTask } from "./api/tasks";
 import "./App.css";
 
 function App() {
@@ -9,6 +9,9 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   useEffect(() => {
     getProjects().then((data) => {
@@ -33,8 +36,48 @@ function App() {
 
     setTasks((currentTasks) => [...currentTasks, newTask]);
 
-    setTitle('');
-    setDescription('');
+    setTitle("");
+    setDescription("");
+  };
+
+  const handleDelete = async (taskId: number) => {
+    await deleteTask(taskId);
+
+    setTasks((currentTasks) =>
+      currentTasks.filter((task) => task.id !== taskId),
+    );
+  };
+
+  const handleEdit = (task: Task) => {
+    setEditingTaskId(task.id);
+    setEditTitle(task.title);
+    setEditDescription(task.description);
+  };
+
+  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (editingTaskId === null) {
+      return;
+    }
+
+    const updatedTask = await updateTask(editingTaskId, {
+      project_id: 1,
+      title: editTitle,
+      description: editDescription,
+      status: "not_started",
+      due_date: null,
+    });
+
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === updatedTask.id ? updatedTask : task,
+      ),
+    );
+
+    setEditingTaskId(null);
+    setEditTitle("");
+    setEditDescription("");
   };
 
   return (
@@ -81,14 +124,43 @@ function App() {
         <button type="submit">Taskを作成</button>
       </form>
 
+      {editingTaskId !== null && (
+        <div>
+          <h2>Task編集</h2>
+
+          <form onSubmit={handleUpdate}>
+            <div>
+              <label>タイトル</label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label>説明</label>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+
+            <button type="submit">Taskを更新</button>
+          </form>
+        </div>
+      )}
+
       <h2>タスク一覧</h2>
 
       <ul>
         {tasks.map((task) => (
-          <li key={task.id}>
-            <strong>{task.title}</strong>
-            <span>- {task.status}</span>
-          </li>
+          <div key={task.id}>
+            <h3>{task.title}</h3>
+            <p>- {task.status}</p>
+            <button onClick={() => handleEdit(task)}>編集</button>
+            <button onClick={() => handleDelete(task.id)}>削除</button>
+          </div>
         ))}
       </ul>
     </div>
