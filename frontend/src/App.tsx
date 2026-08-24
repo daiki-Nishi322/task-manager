@@ -9,6 +9,7 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -25,19 +26,51 @@ function App() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!title.trim()) {
+      setError("タイトルを入力してください。");
+      return;
+    }
 
-    const newTask = await createTask({
-      project_id: 1,
-      title,
-      description,
-      status: "not_started",
-      due_date: null,
-    });
+    if (!description.trim()) {
+      setError("説明を入力してください。");
+      return;
+    }
+    setError(null);
 
-    setTasks((currentTasks) => [...currentTasks, newTask]);
+    try {
+      const newTask = await createTask({
+        project_id: 1,
+        title,
+        description,
+        status: "not_started",
+        due_date: null,
+      });
 
-    setTitle("");
-    setDescription("");
+      setTasks((currentTasks) => [...currentTasks, newTask]);
+
+      setTitle("");
+      setDescription("");
+    } catch (error: unknown) {
+      if (typeof error === "object" && error !== null && "response" in error) {
+        const axiosError = error as {
+          response?: {
+            data?: {
+              errors?: {
+                title?: string[];
+                description?: string[];
+              };
+            };
+          };
+        };
+
+        setError(
+          axiosError.response?.data?.errors?.title?.[0] ??
+            "Taskの作成に失敗しました。",
+        );
+      } else {
+        setError("Taskの作成に失敗しました。");
+      }
+    }
   };
 
   const handleDelete = async (taskId: number) => {
@@ -80,6 +113,28 @@ function App() {
     setEditDescription("");
   };
 
+  const handleStatusChange = async (taskId: number, status: string) => {
+    const task = tasks.find((task) => task.id === taskId);
+
+    if (!task) {
+      return;
+    }
+
+    const updatedTask = await updateTask(taskId, {
+      project_id: task.project_id,
+      title: task.title,
+      description: task.description,
+      status,
+      due_date: task.due_date,
+    });
+
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === updatedTask.id ? updatedTask : task,
+      ),
+    );
+  };
+
   return (
     <div>
       <h1>Task Manager</h1>
@@ -102,6 +157,8 @@ function App() {
       ))}
 
       <h2>Task作成</h2>
+
+      {error && <p>{error}</p>}
 
       <form onSubmit={handleSubmit}>
         <div>
@@ -157,7 +214,14 @@ function App() {
         {tasks.map((task) => (
           <div key={task.id}>
             <h3>{task.title}</h3>
-            <p>- {task.status}</p>
+            <select
+              value={task.status}
+              onChange={(e) => handleStatusChange(task.id, e.target.value)}
+            >
+              <option value="not_started">未着手</option>
+              <option value="in_progress">進行中</option>
+              <option value="completed">完了</option>
+            </select>
             <button onClick={() => handleEdit(task)}>編集</button>
             <button onClick={() => handleDelete(task.id)}>削除</button>
           </div>
