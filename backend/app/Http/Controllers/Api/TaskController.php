@@ -8,9 +8,13 @@ use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $tasks = Task::all();
+        $user = $request->user();
+
+        $tasks = Task::whereHas('project', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->get();
 
         return response()->json($tasks);
     }

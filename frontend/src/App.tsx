@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { Project, Task } from "./types/project";
 import { getProjects } from "./api/projects";
 import { createTask, deleteTask, getTasks, updateTask } from "./api/tasks";
+import { login } from "./api/auth";
 import "./App.css";
 
 function App() {
@@ -13,6 +14,10 @@ function App() {
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     getProjects().then((data) => {
@@ -70,6 +75,30 @@ function App() {
       } else {
         setError("Taskの作成に失敗しました。");
       }
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    setLoginError(null);
+
+    try {
+      const response = await login({
+        email,
+        password,
+      });
+
+      console.log("ログイン成功:", response);
+
+      localStorage.setItem("token", response.token);
+
+      setIsLoggedIn(true);
+      setEmail("");
+      setPassword("");
+    } catch (error) {
+      console.error(error);
+      setLoginError("メールアドレスまたはパスワードが正しくありません。");
     }
   };
 
@@ -138,6 +167,34 @@ function App() {
   return (
     <div>
       <h1>Task Manager</h1>
+
+      <h2>ログイン</h2>
+
+      <form onSubmit={handleLogin}>
+        <div>
+          <label>メールアドレス</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label>パスワード</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+
+        <button type="submit">ログイン</button>
+      </form>
+
+      {loginError && <p>{loginError}</p>}
+
+      {isLoggedIn && <p>ログインしました。</p>}
 
       <h2>プロジェクト一覧</h2>
 

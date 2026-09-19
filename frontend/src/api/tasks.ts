@@ -1,10 +1,8 @@
-import axios from 'axios';
-import type { Task } from '../types/project';
+import api from "./axios";
+import type { Task } from "../types/project";
 
 export const getTasks = async (): Promise<Task[]> => {
-  const response = await axios.get<Task[]>(
-    'http://localhost:8000/api/tasks'
-  );
+  const response = await api.get<Task[]>("/tasks");
 
   return response.data;
 };
@@ -17,28 +15,20 @@ export type CreateTaskData = {
   due_date: string | null;
 };
 
-export const createTask = async (
-  task: CreateTaskData
-): Promise<Task> => {
-  const response = await axios.post<Task>(
-    'http://localhost:8000/api/tasks',
-    task
-  );
+export const createTask = async (task: CreateTaskData): Promise<Task> => {
+  const response = await api.post<Task>("/tasks", task);
   return response.data;
 };
 
 export const deleteTask = async (taskId: number): Promise<void> => {
-  await axios.delete(`http://localhost:8000/api/tasks/${taskId}`);
+  await api.delete(`/tasks${taskId}`);
 };
 
 export const updateTask = async (
   taskId: number,
-  task: CreateTaskData
+  task: CreateTaskData,
 ): Promise<Task> => {
-  const response = await axios.put<Task>(
-    `http://localhost:8000/api/tasks/${taskId}`,
-    task
-  );
+  const response = await api.put<Task>(`/tasks${taskId}`, task);
 
   return response.data;
 };
